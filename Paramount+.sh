@@ -4,32 +4,64 @@
 source "$romsPath/cloud/cloud.conf"
 
 LINK="https://www.paramountplus.com/"
+CONFIG="$HOME/.config/powermanagementprofilesrc"
+LOG="$HOME/stream_log.txt"
+TIMESTAMP=$(date)
 
-# Backup original dim timeout (ms)
-ORIGINAL_TIMEOUT=$(kwriteconfig5 --file powermanagementprofilesrc \
-  --group AC --group DPMSControl --key idleTime --get 2>/dev/null)
+# Helper: extract current value
+extract_timeout() {
+    grep -A1 "\[$1\]" "$CONFIG" | grep idleTime | cut -d= -f2 | tr -d ' '
+}
 
-# Set screen dim to 30 minutes (1800000 ms)
-kwriteconfig5 --file powermanagementprofilesrc \
-  --group AC --group DPMSControl --key idleTime 1800000
+# Backup current timeouts
+ORIGINAL_DPMS=$(extract_timeout "DPMSControl")
+ORIGINAL_DIM=$(extract_timeout "DimDisplay")
 
-# Apply the change immediately
-qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement refreshProfile
+# Log original values
+{
+    echo "[$TIMESTAMP] 🔍 Before launching Chromium"
+    echo "DPMS Timeout: $ORIGINAL_DPMS"
+    echo "DimDisplay Timeout: $ORIGINAL_DIM"
+    echo ""
+} >> "$LOG"
 
-# Launch Chromium and prevent system sleep while running
-systemd-inhibit --what=handle-lid-switch:sleep \
---why="Watching Paramount Plus" \
-flatpak run org.chromium.Chromium --kiosk "$LINK"
+# Launch Chromium via systemd-inhibit without backgrounding
+systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Paramount+" \
+flatpak run org.chromium.Chromium --kiosk "$LINK" &
 
-# Restore original screen dim timeout (if it was set)
-if [[ -n "$ORIGINAL_TIMEOUT" ]]; then
-  kwriteconfig5 --file powermanagementprofilesrc \
-    --group AC --group DPMSControl --key idleTime "$ORIGINAL_TIMEOUT"
-else
-  # fallback default to 5 min (300000 ms) if original was unset
-  kwriteconfig5 --file powermanagementprofilesrc \
-    --group AC --group DPMSControl --key idleTime 300000
-fi
+# Grab the Chromium process
+sleep 3  # Let it launch
+CHROME_PID=$(pgrep -f "org.chromium.Chromium.*--kiosk" | head -n1)
 
-# Apply the restoration
-qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement refreshProfile
+# Update timeouts to 30 min (1800000 ms)
+sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=1800000/" "$CONFIG"
+sed -i "/\[DimDisplay\]/,/^\[/ s/^idleTime=.*/idleTime=1800000/" "$CONFIG"
+
+# Log new values
+{
+    echo "[$(date)] ✅ After applying extended timeouts"
+    echo "DPMS Timeout: $(extract_timeout "DPMSControl")"
+    echo "DimDisplay Timeout: $(extract_timeout "DimDisplay")"
+    echo ""
+} >> "$LOG"
+
+# Wait for Chromium to exit
+#wait
+
+# Wait for the real Chromium process to close
+while kill -0 "$CHROME_PID" 2>/dev/null; do
+    sleep 2
+done
+
+# Restore original values
+sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=${ORIGINAL_DPMS:-300000}/" "$CONFIG"
+sed -i "/\[DimDisplay\]/,/^\[/ s/^idleTime=.*/idleTime=${ORIGINAL_DIM:-300000}/" "$CONFIG"
+
+# Final log
+{
+    echo "[$(date)] 🔄 After Chromium closed – timeouts restored"
+    echo "DPMS Timeout: $(extract_timeout "DPMSControl")"
+    echo "DimDisplay Timeout: $(extract_timeout "DimDisplay")"
+    echo "----------------------------------------------"
+    echo ""
+} >> "$LOG"
