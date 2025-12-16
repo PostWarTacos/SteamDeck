@@ -29,11 +29,15 @@ ORIGINAL_DIM=$(extract_timeout "DimDisplay")
 systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Crunchyroll" \
 flatpak run org.chromium.Chromium \
 --start-fullscreen \
---disable-gpu \
---disable-software-rasterizer \
---disable-features=VizDisplayCompositor \
+--use-gl=angle \
+--use-angle=swiftshader \
+--disable-sync \
+--disable-background-networking \
+--disable-features=DownloadBubble,DownloadBubbleV2 \
 --enable-features=Widevine \
 --no-sandbox \
+--disable-dev-shm-usage \
+--ozone-platform-hint=auto \
 "$LINK" &
 
 # Grab the Chromium process
