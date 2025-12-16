@@ -27,11 +27,11 @@ ORIGINAL_DIM=$(extract_timeout "DimDisplay")
 
 # Launch Chromium via systemd-inhibit without backgrounding
 systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Disney+" \
-flatpak run org.chromium.Chromium --kiosk "$LINK" &
+flatpak run org.chromium.Chromium --start-fullscreen "$LINK" &
 
 # Grab the Chromium process
 sleep 3  # Let it launch
-CHROME_PID=$(pgrep -f "org.chromium.Chromium.*--kiosk" | head -n1)
+CHROME_PID=$(pgrep -f "org.chromium.Chromium.*--start-fullscreen" | head -n1)
 
 # Update timeouts to 30 min (1800000 ms)
 sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=1800000/" "$CONFIG"
