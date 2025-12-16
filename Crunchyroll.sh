@@ -27,7 +27,14 @@ ORIGINAL_DIM=$(extract_timeout "DimDisplay")
 
 # Launch Chromium via systemd-inhibit without backgrounding
 systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Crunchyroll" \
-flatpak run org.chromium.Chromium --start-fullscreen "$LINK" &
+flatpak run org.chromium.Chromium \
+--start-fullscreen \
+--disable-gpu \
+--disable-software-rasterizer \
+--disable-features=VizDisplayCompositor \
+--enable-features=Widevine \
+--no-sandbox \
+"$LINK" &
 
 # Grab the Chromium process
 sleep 3  # Let it launch
