@@ -4,6 +4,12 @@
 source "$romsPath/cloud/cloud.conf"
 
 LINK="https://www.paramountplus.com/"
+
+# Check if Chromium is installed, install if not (required for streaming)
+if ! flatpak list | grep -q "org.chromium.Chromium"; then
+    echo "Chromium not found. Installing..."
+    flatpak install -y flathub org.chromium.Chromium
+fi
 CONFIG="$HOME/.config/powermanagementprofilesrc"
 LOG="$HOME/stream_log.txt"
 MAX_LOG_SIZE=307200   # 300 KB in bytes
