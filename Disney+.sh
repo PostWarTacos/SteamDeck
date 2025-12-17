@@ -36,7 +36,7 @@ extract_timeout() {
 ORIGINAL_DPMS=$(extract_timeout "DPMSControl")
 ORIGINAL_DIM=$(extract_timeout "DimDisplay")
 
-cleanup() {
+cleanup() { # Restore original timeouts. 5 minutes default if not found.
     sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=${ORIGINAL_DPMS:-300000}/" "$CONFIG"
     sed -i "/\[DimDisplay\]/,/^\[/ s/^idleTime=.*/idleTime=${ORIGINAL_DIM:-300000}/" "$CONFIG"
 }
