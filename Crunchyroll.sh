@@ -25,13 +25,9 @@ ORIGINAL_DIM=$(extract_timeout "DimDisplay")
     echo ""
 } >> "$LOG"
 
-# Launch Chromium via systemd-inhibit without backgrounding
-systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Crunchyroll" \
-flatpak run org.chromium.Chromium --kiosk "$LINK" &
-
 # Grab the Chromium process
-sleep 3  # Let it launch
-CHROME_PID=$(pgrep -f "org.chromium.Chromium.*--kiosk" | head -n1)
+# sleep 3  # Let it launch
+#CHROME_PID=$(pgrep -f "org.chromium.Chromium.*--kiosk" | head -n1)
 
 # Update timeouts to 30 min (1800000 ms)
 sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=1800000/" "$CONFIG"
@@ -49,9 +45,14 @@ sed -i "/\[DimDisplay\]/,/^\[/ s/^idleTime=.*/idleTime=1800000/" "$CONFIG"
 #wait
 
 # Wait for the real Chromium process to close
-while kill -0 "$CHROME_PID" 2>/dev/null; do
-    sleep 2
-done
+# while kill -0 "$CHROME_PID" 2>/dev/null; do
+#     sleep 2
+# done
+
+# Launch Chromium via systemd-inhibit without backgrounding
+systemd-inhibit --what=handle-lid-switch:sleep --why="Watching Crunchyroll" \
+flatpak run org.chromium.Chromium --start-fullscreen --no-first-run --disable-session-crashed-bubble "$LINK"
+# flatpak run org.chromium.Chromium --kiosk "$LINK" &
 
 # Restore original values
 sed -i "/\[DPMSControl\]/,/^\[/ s/^idleTime=.*/idleTime=${ORIGINAL_DPMS:-300000}/" "$CONFIG"
